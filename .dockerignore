@@ -1,0 +1,7 @@
+.dart_tool/
+.git/
+.github/
+.gitignore
+.packages
+build/
+lib/
