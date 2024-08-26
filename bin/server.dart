@@ -27,8 +27,7 @@ class ChessServer {
       if (WebSocketTransformer.isUpgradeRequest(request)) {
         handleWebSocket(request);
       } else {
-        request.response.statusCode = HttpStatus.forbidden;
-        request.response.close();
+        handleHttpRequest(request);
       }
     }
   }
@@ -42,6 +41,29 @@ class ChessServer {
       onDone: () => print("Disconnected"),
       onError: (error) => print('Error: $error'),
     );
+  }
+}
+
+handleHttpRequest(HttpRequest request) {
+  print("HTTP request: ${request.method} ${request.uri.path}");
+
+  if (request.uri.path == "/health") {
+    request.response
+      ..statusCode = HttpStatus.ok
+      ..write("OK")
+      ..close();
+  } else if (request.uri.path == "/") {
+    request.response
+      ..statusCode = HttpStatus.ok
+      ..headers.contentType = ContentType.html
+      ..write(
+          "<html><body><h1>Northchess Server</h1></h2>Made by Team ABCs</h2><p>WebSocket endpoint availalbe.</p></body></html>")
+      ..close();
+  } else {
+    request.response
+      ..statusCode = HttpStatus.notFound
+      ..write("Not Found")
+      ..close();
   }
 }
 
