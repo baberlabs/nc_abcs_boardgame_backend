@@ -1,8 +1,20 @@
 import 'dart:io';
 import 'dart:async';
 
+class GameInstance {
+  final WebSocket whitePlayer;
+  final WebSocket blackPlayer;
+  GameInstance(this.whitePlayer, this.blackPlayer);
+}
+
 class ChessServer {
   final List<WebSocket> _clients = [];
+  final List<GameInstance> games = [];
+
+  WebSocket? _waitingToPlay = null;
+
+  final Map<WebSocket, String> socketNameMap = {};
+  final Map<WebSocket, GameInstance> socketGameMap = {};
 
   Future<void> start(int port) async {
     final server = await HttpServer.bind(InternetAddress.anyIPv4, port);
@@ -25,17 +37,56 @@ class ChessServer {
     socket.listen(
       (message) {
         print("Message: $message");
-        broadcastMessage(message);
+        handleMessage(message, socket);
+        // broadcastMessage(message);
       },
       onDone: () {
         print("Client disconnected");
         _clients.remove(socket);
+        // TODO remove users from maps 
       },
       onError: (error) {
         print('Error: $error');
         _clients.remove(socket);
       },
     );
+  }
+
+  void handleMessage(String message, WebSocket socket) {
+    final [instruction, payload] = message.split(":");
+
+    switch (instruction) {
+      case "user":
+        {
+          socketNameMap[socket] = payload;
+          if (_waitingToPlay == null) {
+            // add client to waiting to play if nones already waiting to play
+            _waitingToPlay = socket;
+            socket.add('user:$payload:white');
+          } else {
+            // send clients the oposition names
+            socket.add('user:$payload:black');
+            socket.add('user:${socketNameMap[_waitingToPlay]}:white');
+
+            _waitingToPlay!.add('user:$payload:black');
+
+            final newGame = GameInstance(_waitingToPlay!, socket);
+            socketGameMap[socket] = newGame;
+            socketGameMap[_waitingToPlay!] = newGame;
+            games.add(newGame);
+
+            _waitingToPlay = null;
+          }
+          print(socketNameMap);
+          print(_waitingToPlay);
+          print(games);
+        }
+      case "move": {
+        final currentGame = socketGameMap[socket];
+        currentGame!.whitePlayer.add('move:$payload');
+        currentGame.blackPlayer.add('move:$payload');
+      }
+    }
   }
 
   handleHttpRequest(HttpRequest request) {
@@ -58,12 +109,6 @@ class ChessServer {
         ..statusCode = HttpStatus.notFound
         ..write("Not Found")
         ..close();
-    }
-  }
-
-  void broadcastMessage(String message) {
-    for (var client in _clients) {
-      client.add(message);
     }
   }
 }
