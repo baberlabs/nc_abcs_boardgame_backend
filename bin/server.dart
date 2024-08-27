@@ -43,7 +43,22 @@ class ChessServer {
       onDone: () {
         print("Client disconnected");
         _clients.remove(socket);
-        // TODO remove users from maps 
+
+        if (_waitingToPlay == socket) {
+          _waitingToPlay = null;
+        }
+
+        if (socketNameMap.containsKey(socket)) {
+          socketNameMap.remove(socket);
+        }
+
+        if (socketGameMap.containsKey(socket)) {
+          final game = socketGameMap[socket];
+          if (game == null) return;
+          games.remove(game);
+          game.whitePlayer.add("disconnected");
+          game.blackPlayer.add("disconnected");
+        }
       },
       onError: (error) {
         print('Error: $error');
@@ -81,11 +96,13 @@ class ChessServer {
           print(_waitingToPlay);
           print(games);
         }
-      case "move": {
-        final currentGame = socketGameMap[socket];
-        currentGame!.whitePlayer.add('move:$payload');
-        currentGame.blackPlayer.add('move:$payload');
-      }
+      case "move":
+        {
+          final currentGame = socketGameMap[socket];
+          if (currentGame == null) return;
+          currentGame.whitePlayer.add('move:$payload');
+          currentGame.blackPlayer.add('move:$payload');
+        }
     }
   }
 
