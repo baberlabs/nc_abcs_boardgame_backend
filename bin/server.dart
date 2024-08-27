@@ -1,43 +1,47 @@
 import "dart:io";
 import "dart:async";
 
-/*
-
-BACKEND
-
-player1 joins chess server, rooms/1, as white by default
-player2 joins chess server, rooms/1, as black by default
-player3 joins chess server, rooms/2, as white by default
-player4 joins chess server, rooms/2, as black by default
-
-FRONTEND
-
-white side is chosen for player1 by the server
-player1 can only play white pieces
-player2 can only play black pieces
-
-*/
+class User {
+  String? username;
+  User(this.username);
+}
 
 class ChessServer {
   Future<void> start(int port) async {
     final server = await HttpServer.bind(InternetAddress.anyIPv4, port);
     print('Listening on ${server.address.address}:${server.port}');
 
+    final user = User(null);
+
     await for (HttpRequest request in server) {
       if (WebSocketTransformer.isUpgradeRequest(request)) {
-        handleWebSocket(request);
+        handleWebSocket(request, user);
       } else {
         handleHttpRequest(request);
       }
     }
   }
 
-  void handleWebSocket(HttpRequest request) async {
+  void handleWebSocket(HttpRequest request, User user) async {
     final socket = await WebSocketTransformer.upgrade(request);
     print('Client connected');
 
     socket.listen(
-      (message) => print("Message: $message"),
+      (message) {
+        if (message.contains("username")) {
+          user.username = message.split(":")[1];
+          print("User \"${user.username}\" connected!");
+          socket.add(message);
+        } else if (message.contains("move")) {
+          final move = message.split(":")[1];
+          print("${user.username} moved: $move");
+          socket.add("$message:${user.username}");
+        } else {
+          print("Message: $message");
+        }
+
+        // socket.add("$message");
+      },
       onDone: () => print("Disconnected"),
       onError: (error) => print('Error: $error'),
     );
@@ -70,3 +74,21 @@ handleHttpRequest(HttpRequest request) {
 void main() {
   ChessServer().start(8080);
 }
+
+
+/*
+
+BACKEND
+
+player1 joins chess server, rooms/1, as white by default
+player2 joins chess server, rooms/1, as black by default
+player3 joins chess server, rooms/2, as white by default
+player4 joins chess server, rooms/2, as black by default
+
+FRONTEND
+
+white side is chosen for player1 by the server
+player1 can only play white pieces
+player2 can only play black pieces
+
+*/
