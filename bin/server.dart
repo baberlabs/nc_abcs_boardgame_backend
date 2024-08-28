@@ -101,8 +101,12 @@ class ChessServer {
       case "move":
         final currentGame = socketGameMap[socket];
         if (currentGame == null) return;
-        currentGame.whitePlayer.add('move:$payload');
-        currentGame.blackPlayer.add('move:$payload');
+        if (socket == currentGame.whitePlayer) {
+          currentGame.blackPlayer.add('move:$payload');
+        }
+        if (socket == currentGame.blackPlayer) {
+          currentGame.whitePlayer.add('move:$payload');
+        }
         break;
       case "resign":
         final currentGame = socketGameMap[socket];
