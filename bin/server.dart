@@ -17,7 +17,7 @@ class ChessServer {
   final Map<WebSocket, GameInstance> socketGameMap = {};
 
   Future<void> start(int port) async {
-    final server = await HttpServer.bind(InternetAddress.anyIPv4, port);
+    final server = await HttpServer.bind(InternetAddress.anyIPv4, port, shared: true);
     print('Listening on ${server.address.address}:${server.port}');
 
     await for (HttpRequest request in server) {
