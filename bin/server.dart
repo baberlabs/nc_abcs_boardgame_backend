@@ -17,7 +17,8 @@ class ChessServer {
   final Map<WebSocket, GameInstance> socketGameMap = {};
 
   Future<void> start(int port) async {
-    final server = await HttpServer.bind(InternetAddress.anyIPv4, port, shared: true);
+    final server =
+        await HttpServer.bind(InternetAddress.anyIPv4, port, shared: true);
     print('Listening on ${server.address.address}:${server.port}');
 
     await for (HttpRequest request in server) {
@@ -53,11 +54,13 @@ class ChessServer {
         }
 
         if (socketGameMap.containsKey(socket)) {
-          final game = socketGameMap[socket];
-          if (game == null) return;
-          games.remove(game);
-          game.whitePlayer.add("disconnected");
-          game.blackPlayer.add("disconnected");
+          final currentGame = socketGameMap[socket];
+          if (currentGame == null) return;
+          socketGameMap.remove(currentGame.whitePlayer);
+          socketGameMap.remove(currentGame.blackPlayer);
+          games.remove(currentGame);
+          currentGame.whitePlayer.add("disconnected");
+          currentGame.blackPlayer.add("disconnected");
         }
       },
       onError: (error) {
@@ -104,12 +107,16 @@ class ChessServer {
       case "resign":
         final currentGame = socketGameMap[socket];
         if (currentGame == null) return;
+
         if (socket == currentGame.whitePlayer) {
           currentGame.blackPlayer.add('opponent-resigned');
         }
         if (socket == currentGame.blackPlayer) {
           currentGame.whitePlayer.add('opponent-resigned');
         }
+        socketGameMap.remove(currentGame.whitePlayer);
+        socketGameMap.remove(currentGame.blackPlayer);
+        games.remove(currentGame);
 
         break;
     }
