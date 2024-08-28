@@ -72,37 +72,46 @@ class ChessServer {
 
     switch (instruction) {
       case "user":
-        {
-          socketNameMap[socket] = payload;
-          if (_waitingToPlay == null) {
-            // add client to waiting to play if nones already waiting to play
-            _waitingToPlay = socket;
-            socket.add('user:$payload:white');
-          } else {
-            // send clients the oposition names
-            socket.add('user:$payload:black');
-            socket.add('user:${socketNameMap[_waitingToPlay]}:white');
+        socketNameMap[socket] = payload;
+        if (_waitingToPlay == null) {
+          // add client to waiting to play if nones already waiting to play
+          _waitingToPlay = socket;
+          socket.add('user:$payload:white');
+        } else {
+          // send clients the oposition names
+          socket.add('user:$payload:black');
+          socket.add('user:${socketNameMap[_waitingToPlay]}:white');
 
-            _waitingToPlay!.add('user:$payload:black');
+          _waitingToPlay!.add('user:$payload:black');
 
-            final newGame = GameInstance(_waitingToPlay!, socket);
-            socketGameMap[socket] = newGame;
-            socketGameMap[_waitingToPlay!] = newGame;
-            games.add(newGame);
+          final newGame = GameInstance(_waitingToPlay!, socket);
+          socketGameMap[socket] = newGame;
+          socketGameMap[_waitingToPlay!] = newGame;
+          games.add(newGame);
 
-            _waitingToPlay = null;
-          }
-          print(socketNameMap);
-          print(_waitingToPlay);
-          print(games);
+          _waitingToPlay = null;
         }
+        print(socketNameMap);
+        print(_waitingToPlay);
+        print(games);
+        break;
       case "move":
-        {
-          final currentGame = socketGameMap[socket];
-          if (currentGame == null) return;
-          currentGame.whitePlayer.add('move:$payload');
-          currentGame.blackPlayer.add('move:$payload');
+        final currentGame = socketGameMap[socket];
+        if (currentGame == null) return;
+        currentGame.whitePlayer.add('move:$payload');
+        currentGame.blackPlayer.add('move:$payload');
+        break;
+      case "resign":
+        final currentGame = socketGameMap[socket];
+        if (currentGame == null) return;
+        if (socket == currentGame.whitePlayer) {
+          currentGame.blackPlayer.add('opponent-resigned');
         }
+        if (socket == currentGame.blackPlayer) {
+          currentGame.whitePlayer.add('opponent-resigned');
+        }
+
+        break;
     }
   }
 
