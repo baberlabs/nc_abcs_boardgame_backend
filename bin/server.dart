@@ -123,6 +123,24 @@ class ChessServer {
         games.remove(currentGame);
 
         break;
+      case "promote":
+        final currentGame = socketGameMap[socket];
+        if (currentGame == null) return;
+
+        if (socket == currentGame.whitePlayer) {
+          currentGame.blackPlayer.add('promote:$payload');
+        }
+        if (socket == currentGame.blackPlayer) {
+          currentGame.whitePlayer.add('promote:$payload');
+        }
+        break;
+      case "exit":
+        final currentGame = socketGameMap[socket];
+        if (currentGame == null) return;
+        socketGameMap.remove(currentGame.whitePlayer);
+        socketGameMap.remove(currentGame.blackPlayer);
+        games.remove(currentGame);
+        break;
     }
   }
 
