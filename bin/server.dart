@@ -94,7 +94,7 @@ class ChessServer {
           socket.add('user:${socketNameMap[socket]}:black');
           socket.add('user:${socketNameMap[_waitingToPlay[payload]]}:white');
 
-          _waitingToPlay[payload]!.add('user:$payload:black');
+          _waitingToPlay[payload]!.add('user:${socketNameMap[socket]}:black');
 
           final newGame = GameInstance(_waitingToPlay[payload]!, socket);
           socketGameMap[socket] = newGame;
