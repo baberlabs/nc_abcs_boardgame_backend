@@ -48,6 +48,11 @@ class ChessServer {
       },
       onDone: () {
         print("Client disconnected");
+
+        print('socketNameMap: $socketNameMap');
+        print('waiting: $_waitingToPlay');
+        print('games $games');
+
         _clients.remove(socket);
 
         for (final variant in _waitingToPlay.keys) {
@@ -80,6 +85,11 @@ class ChessServer {
   void handleMessage(String message, WebSocket socket) {
     final [instruction, payload] = message.split(":");
 
+    print('instruction $instruction');
+    print('socketNameMap: $socketNameMap');
+    print('waiting: $_waitingToPlay');
+    print('games $games');
+
     switch (instruction) {
       case "user":
         socketNameMap[socket] = payload;
@@ -103,9 +113,7 @@ class ChessServer {
 
           _waitingToPlay[payload] = null;
         }
-        print(socketNameMap);
-        print(_waitingToPlay);
-        print(games);
+
         break;
       case "move":
         final currentGame = socketGameMap[socket];
@@ -119,6 +127,14 @@ class ChessServer {
         break;
       case "resign":
         final currentGame = socketGameMap[socket];
+
+        for (final variant in _waitingToPlay.keys) {
+          if (_waitingToPlay[variant] == socket) {
+            print("DEBUG");
+            _waitingToPlay[variant] = null;
+          }
+        }
+
         if (currentGame == null) return;
 
         if (socket == currentGame.whitePlayer) {
@@ -131,11 +147,6 @@ class ChessServer {
         socketGameMap.remove(currentGame.blackPlayer);
         games.remove(currentGame);
 
-        for (final variant in _waitingToPlay.keys) {
-          if (_waitingToPlay[variant] == socket) {
-            _waitingToPlay[variant] = null;
-          }
-        }
         break;
       case "promote":
         final currentGame = socketGameMap[socket];
@@ -150,10 +161,16 @@ class ChessServer {
         break;
       case "exit":
         final currentGame = socketGameMap[socket];
+        for (final variant in _waitingToPlay.keys) {
+          if (_waitingToPlay[variant] == socket) {
+            _waitingToPlay[variant] = null;
+          }
+        }
         if (currentGame == null) return;
         socketGameMap.remove(currentGame.whitePlayer);
         socketGameMap.remove(currentGame.blackPlayer);
         games.remove(currentGame);
+
         break;
     }
   }
