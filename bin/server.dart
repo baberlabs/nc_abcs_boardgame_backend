@@ -11,7 +11,12 @@ class ChessServer {
   final List<WebSocket> _clients = [];
   final List<GameInstance> games = [];
 
-  WebSocket? _waitingToPlay = null;
+  final Map<String, WebSocket?> _waitingToPlay = {
+    'normal': null,
+    'edgeWrap': null,
+    'horde': null,
+    'endgame': null
+  };
 
   final Map<WebSocket, String> socketNameMap = {};
   final Map<WebSocket, GameInstance> socketGameMap = {};
@@ -45,8 +50,10 @@ class ChessServer {
         print("Client disconnected");
         _clients.remove(socket);
 
-        if (_waitingToPlay == socket) {
-          _waitingToPlay = null;
+        for (final variant in _waitingToPlay.keys) {
+          if (_waitingToPlay[variant] == socket) {
+            _waitingToPlay[variant] = null;
+          }
         }
 
         if (socketNameMap.containsKey(socket)) {
@@ -76,23 +83,25 @@ class ChessServer {
     switch (instruction) {
       case "user":
         socketNameMap[socket] = payload;
-        if (_waitingToPlay == null) {
+        break;
+      case "variant":
+        if (_waitingToPlay[payload] == null) {
           // add client to waiting to play if nones already waiting to play
-          _waitingToPlay = socket;
-          socket.add('user:$payload:white');
+          _waitingToPlay[payload] = socket;
+          socket.add('user:${socketNameMap[socket]}:white');
         } else {
           // send clients the oposition names
-          socket.add('user:$payload:black');
-          socket.add('user:${socketNameMap[_waitingToPlay]}:white');
+          socket.add('user:${socketNameMap[socket]}:black');
+          socket.add('user:${socketNameMap[_waitingToPlay[payload]]}:white');
 
-          _waitingToPlay!.add('user:$payload:black');
+          _waitingToPlay[payload]!.add('user:$payload:black');
 
-          final newGame = GameInstance(_waitingToPlay!, socket);
+          final newGame = GameInstance(_waitingToPlay[payload]!, socket);
           socketGameMap[socket] = newGame;
-          socketGameMap[_waitingToPlay!] = newGame;
+          socketGameMap[_waitingToPlay[payload]!] = newGame;
           games.add(newGame);
 
-          _waitingToPlay = null;
+          _waitingToPlay[payload] = null;
         }
         print(socketNameMap);
         print(_waitingToPlay);
@@ -122,6 +131,11 @@ class ChessServer {
         socketGameMap.remove(currentGame.blackPlayer);
         games.remove(currentGame);
 
+        for (final variant in _waitingToPlay.keys) {
+          if (_waitingToPlay[variant] == socket) {
+            _waitingToPlay[variant] = null;
+          }
+        }
         break;
       case "promote":
         final currentGame = socketGameMap[socket];
