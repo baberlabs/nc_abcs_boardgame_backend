@@ -22,8 +22,15 @@ class ChessServer {
   final Map<WebSocket, GameInstance> socketGameMap = {};
 
   Future<void> start(int port) async {
-    final server =
-        await HttpServer.bind(InternetAddress.anyIPv4, port, shared: true);
+    // Load SSL certificate and key
+    SecurityContext context = SecurityContext()
+      ..useCertificateChain('/etc/letsencrypt/live/www.christianloach.com/fullchain.pem')
+      ..usePrivateKey('/etc/letsencrypt/live/www.christianloach.com/privkey.pem');
+
+    // Bind the server to the address and port with SSL
+    final server = await HttpServer.bindSecure(
+        InternetAddress.anyIPv4, port, context,
+        shared: true);
     print('Listening on ${server.address.address}:${server.port}');
 
     await for (HttpRequest request in server) {
